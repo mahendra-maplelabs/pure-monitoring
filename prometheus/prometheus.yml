@@ -1,0 +1,83 @@
+# my global config
+global:
+  scrape_interval: 1m # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 1m # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+  scrape_timeout: 30s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+       - 'prometheus-alertmanager:9093'
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - 'alert.rules'
+  - 'pure.rules'
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # Job for all Prometheus
+  - job_name: 'pure_flashblade'
+    metrics_path: /metrics/flashblade
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_endpoint
+      - source_labels: [__pure_apitoken]
+        target_label: __param_apitoken
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: __address__
+        replacement: pure-exporter:9491   # cluster-IP:port
+    static_configs:
+      - targets: [ 10.60.116.80 ]   # eternally addressable FlashBlade IP address
+        labels:
+          __pure_apitoken: T-c61e4dec-6862-4264-87f8-315264d9e65a
+          location: USA
+          site: Texas
+          is_production: 1
+
+      - targets: [ 10.60.116.100 ]
+        labels:
+          __pure_apitoken: T-79ced0e5-1d36-4916-8741-66482f04c6d1
+          location: USA
+          site: Texas
+          is_production: 1
+
+
+  # Job for all Pure Flashblade clients
+  - job_name: 'pure_flashblade clients'
+    metrics_path: /metrics/flashblade/client
+    relabel_configs:
+    # meta label of target address --> get parameter "pure_host"
+    - source_labels: [__address__]
+      target_label: __param_endpoint
+    # label of target api token --> get parameter "pure_apitoken"
+    - source_labels: [__pure_apitoken]
+      target_label: __param_apitoken
+    # display the pure host as the instance label
+    - source_labels: [__address__]
+      target_label: instance
+    # point the exporter to the scraping endpoint of the exporter
+    - target_label: __address__
+      replacement: pure-exporter:9491 # address of the exporter, in debug mode
+                                  # THIS NEEDS TO BE CHANGED TO YOUR ENVIRONMENT
+      
+    # Actual pure hosts (without a prometheus endpoint) as targets
+    static_configs:
+      - targets: [ 10.60.116.80 ]
+        labels:
+          __pure_apitoken: T-c61e4dec-xxx-4264-87f8-315264d9e65a
+          location: USA
+          site: Texas
+          is_production: 1
+
+      - targets: [ 10.60.116.100 ]
+        labels:
+          __pure_apitoken: T-79ced0e5-1d36-yyyy-8741-66482f04c6d1
+          location: USA
+          site: Texas
+          is_production: 1

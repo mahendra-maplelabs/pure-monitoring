@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  prometheus:
+      container_name: prometheus
+      image: prom/prometheus:latest
+      restart: always
+      ports:
+      - 9090:9090
+      volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+      command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=5d
+
+  prometheus-alertmanager:
+    container_name: prometheus-alertmanager
+    image: prom/alertmanager:latest
+    restart: always
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+
+  pure-exporter:
+      container_name: pure-exporter
+      image: genegatpure/pure-exporter
+      restart: always
+      ports:
+      - 9491:9491
+
+  grafana:
+      container_name: grafana
+      image: grafana/grafana:latest
+      restart: always
+      depends_on:
+      - prometheus
+      ports:
+      - 3000:3000
+      volumes:
+      - ./grafana/:/etc/grafana/
+      - grafana_data:/var/lib/grafana
+
+volumes:
+    grafana_data: 
+    prometheus_data: 
+    alertmanager_data: 
